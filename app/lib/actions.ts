@@ -4,6 +4,7 @@ import { z } from 'zod';
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { error } from 'console';
 
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
@@ -27,10 +28,15 @@ export async function createInvoice(formData: FormData) {
   const amountInCents = amount * 100;
   const date = new Date().toISOString().split('T')[0];
 
+  try {
     await sql`
-    INSERT INTO invoices (customer_id, amount, status, date)
-    VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-  `;
+      INSERT INTO invoices (customer_id, amount, status, date)
+      VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+    `;
+  } catch (error) {
+    // We'll also log the error to the console for now
+    console.error(error);
+  }
     revalidatePath('/dashboard/invoices');
     redirect('/dashboard/invoices');
 }
@@ -44,18 +50,22 @@ export async function updateInvoice(id: string, formData: FormData) {
   });
  
   const amountInCents = amount * 100;
- 
+ try{
   await sql`
     UPDATE invoices
     SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
     WHERE id = ${id}
-  `;
- 
+  `;}
+  catch (error){
+    console.error(error);
+  }
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
-  await sql`DELETE FROM invoices WHERE id = ${id}`;
-  revalidatePath('/dashboard/invoices');
+    throw new Error('Failed to Delete Invoice');
+
+    await sql`DELETE FROM invoices WHERE id = ${id}`;
+    revalidatePath('/dashboard/invoices');
 }
